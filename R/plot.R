@@ -5,17 +5,18 @@ plot.axis.projection <- function(object,
                                  b.label = "B",
                                  split.on = NULL,
                                  span = 0.3,
+                                 show.data = T,
                                  title = NULL,
                                  fill.color = NULL,
                                  color.color = NULL,
+                                 data.alpha = 0.1,
+                                 fill.alpha = 0.3,
                                  xlabel = NULL,
                                  ylabel = NULL,
                                  normalize = F
 ){
   
   #' @export plot.axis.projection
-  
-  print(title)
   
   features <- c(features) 
   n.features <- length(features)
@@ -42,22 +43,26 @@ plot.axis.projection <- function(object,
   if (is.null(color.color)){
     color.color <- viridis::scale_color_viridis(discrete = T,option="viridis")
   }
-  
+
   g <- ggplot2::ggplot(data = plot.df,
               aes_string(x = "x",
                          y="value",
                          fill=ifelse(is.null(split.on),
                                      "feature",split.on),
                          color="feature"
-                        )) +
-    ggplot2::geom_point(size = 1, alpha = 0.1)+
-    ggplot2::geom_smooth(method="loess",
-                alpha=0.3,
+                        ))
+  if (show.data){
+    g <- g + ggplot2::geom_point(size = 1, alpha = data.alpha)
+  }
+    
+    g <- g + ggplot2::geom_smooth(method="loess",
+                alpha=fill.alpha,
                 span = span) +
-    ggplot2::xlim(c(0,1)) +
     ggplot2::scale_x_continuous(ifnull(xlabel,paste0(a.label,"-",b.label," axis")),
                        breaks = c(0,1),
-                       labels = c(a.label,b.label)) +
+                       labels = c(a.label,b.label),
+                       limits = c(0,1)
+                       ) +
     
     ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
           panel.grid.minor = ggplot2::element_blank(),
