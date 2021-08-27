@@ -32,7 +32,8 @@ plot.axis.projection <- function(object,
   g <- ggplot2::ggplot(data = plot.df,
               aes_string(x = "x",
                          y="value",
-                         fill=ifelse(is.null(split.on),"feature",split.on),
+                         fill=ifelse(is.null(split.on),
+                                     "feature",split.on),
                          color="feature"
                         )) +
     ggplot2::geom_point(size = 1, alpha = 0.1)+
