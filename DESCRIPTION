@@ -1,0 +1,20 @@
+Package: axis.projection
+Title: Project 2D data on axis
+Version: 1.0.0
+Authors@R: 
+    person(given = "Alma",
+           family = "Andersson",
+           role = c("aut","cre"),
+           email = "almaand@kth.se",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Project 2D data on axis.
+License: use_mit_license()
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports:
+    Seurat (>= 4.0.0)
+    reshape2
+    ggplot2
+    viridis
