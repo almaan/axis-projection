@@ -5,6 +5,9 @@ plot.axis.projection <- function(object,
                                  b.label = "B",
                                  split.on = NULL,
                                  span = 0.3,
+                                 title = NULL,
+                                 fill.color = NULL,
+                                 color.color = NULL,
                                  normalize = F
 ){
   
@@ -26,8 +29,13 @@ plot.axis.projection <- function(object,
                   id.vars = id.vars,
                   variable.name = "feature")
   
-  fill_color <- viridis::scale_fill_viridis(discrete = T,option="magma")
-  color_color <- viridis::scale_color_viridis(discrete = T,option="viridis")
+  if (is.null(fill.color)){
+    fill.color <- viridis::scale_fill_viridis(discrete = T,option="magma")
+  }
+  
+  if (is.null(color.color)){
+    color.color <- viridis::scale_color_viridis(discrete = T,option="viridis")
+  }
   
   g <- ggplot2::ggplot(data = plot.df,
               aes_string(x = "x",
@@ -53,9 +61,9 @@ plot.axis.projection <- function(object,
           axis.title = ggplot2::element_text(size=14,
                                   face="bold")) +
     ggplot2::ylab("Feature Value") +
-    ggplot2::ggtitle("Axis projection") +
-    fill_color +
-    color_color 
+    ggplot2::ggtitle(ifelse(is.null(title,"Axis projection",title)) +
+    fill.color +
+    color.color 
   
   return(g)
 }
