@@ -45,7 +45,7 @@ plot.axis.projection <- function(object,
   }
 
   g <- ggplot2::ggplot(data = plot.df,
-              aes_string(x = "x",
+              ggplot2::aes_string(x = "x",
                          y="value",
                          fill=ifelse(is.null(split.on),
                                      "feature",split.on),
