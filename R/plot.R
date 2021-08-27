@@ -13,6 +13,8 @@ plot.axis.projection <- function(object,
                                  normalize = F
 ){
   
+  #' @export plot.axis.projection
+  
   print(title)
   
   features <- c(features) 

@@ -1,5 +1,6 @@
-get.coordinates <- function(object){
-  return(object@tools$Staffli@meta.data[c("pixel_x","pixel_y")])
+get.coordinates <- function(object,xcrd = "pixel_x",ycrd = "pixel_y"){
+  #' @export get.coordinates
+  return(object@tools$Staffli@meta.data[c(xcrd,ycrd)])
 }
 
 l2.norm <- function(x){
@@ -72,5 +73,6 @@ nice.diff.vector <- function(x,y){
 
 
 ifnull <- function(x,y){
+  #' @export ifnull
   return(ifelse(is.null(x),y,x))
 }

@@ -4,6 +4,8 @@ axis.projection <- function(object,
                             b.label ="B",
                             split.on = NULL){
   
+  #' @export axis.projection
+  
   new.col <- paste0(ab.column,"_projection")
   all.crd <- get.coordinates(object)
   
