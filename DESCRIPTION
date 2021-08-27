@@ -14,7 +14,7 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
-    Seurat (>= 4.0.0)
-    reshape2
-    ggplot2
-    viridis
+        Seurat (>= 4.0.0),
+        reshape2,
+        ggplot2,
+        viridis
