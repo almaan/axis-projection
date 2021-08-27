@@ -71,3 +71,6 @@ nice.diff.vector <- function(x,y){
 }
 
 
+ifnull <- function(x,y){
+  return(ifelse(is.null(x),y,x))
+}

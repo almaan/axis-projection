@@ -8,8 +8,12 @@ plot.axis.projection <- function(object,
                                  title = NULL,
                                  fill.color = NULL,
                                  color.color = NULL,
+                                 xlabel = NULL,
+                                 ylabel = NULL,
                                  normalize = F
 ){
+  
+  print(title)
   
   features <- c(features) 
   n.features <- length(features)
@@ -49,9 +53,10 @@ plot.axis.projection <- function(object,
                 alpha=0.3,
                 span = span) +
     ggplot2::xlim(c(0,1)) +
-    ggplot2::scale_x_continuous(paste0(a.label,"-",b.label," axis"),
+    ggplot2::scale_x_continuous(ifnull(xlabel,paste0(a.label,"-",b.label," axis")),
                        breaks = c(0,1),
                        labels = c(a.label,b.label)) +
+    
     ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
           panel.grid.minor = ggplot2::element_blank(),
           panel.background = ggplot2::element_blank(),
@@ -60,10 +65,12 @@ plot.axis.projection <- function(object,
           axis.text.y = ggplot2::element_text(size = 15),
           axis.title = ggplot2::element_text(size=14,
                                   face="bold")) +
-    ggplot2::ylab("Feature Value") +
-    ggplot2::ggtitle(ifelse(is.null(title,"Axis projection",title)) +
+    
+    ggplot2::ylab(ifnull(ylabel,"Feature Value")) +
+    ggplot2::ggtitle(ifnull(title,"Axis projection")) +
     fill.color +
     color.color 
   
   return(g)
 }
+
