@@ -21,10 +21,25 @@ plot.axis.projection <- function(object,
   features <- c(features) 
   n.features <- length(features)
   
-  plot.df <- as.data.frame(t(as.matrix(Seurat::GetAssay(object)[features,])))
+  plot.df <- list()
+  
+  for (feature in features){
+    if (feature %in% rownames(object)){
+      tmp.feature <- as.numeric(Seurat::GetAssay(object)[feature,])
+    } else if (feature %in% colnames(object@meta.data)){
+      tmp.feature <- object@meta.data[feature]
+    } else {
+      print(sprintf("ERORR %s not in meta or assay data",feature))
+    }
+    plot.df[[feature]] <- tmp.feature
+  }
+    
+  plot.df <- as.data.frame(do.call(cbind,plot.df))
   if (normalize){
     plot.df <- plot.df / apply(plot.df,2,max)
   }
+  
+  
   plot.df["x"] <- object@meta.data[paste0(ab.column,"_projection")]
   if (!(is.null(split.on))){
     plot.df[split.on] <- object@meta.data[split.on]

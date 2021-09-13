@@ -52,3 +52,5 @@ axis.projection <- function(object,
   return(Seurat::AddMetaData(object,all.ab.projs,col.name = new.col))
   
 }
+
+

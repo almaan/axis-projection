@@ -76,3 +76,36 @@ ifnull <- function(x,y){
   #' @export ifnull
   return(ifelse(is.null(x),y,x))
 }
+
+
+trapz <- function(x,y,return.sum = T,interpolate = T,delta = 0.1){
+  n <- length(x)
+  if (interpolate){
+    x.mod <- seq(x[1],x[n],delta)
+    y.mod <- pracma::interp1(x,y,x.mod)
+  } else {
+    x.mod <- x
+    y.mod <- y
+    delta <- diff(x)
+  }
+  n <- length(x.mod)
+  a.raw <- (y.mod[1:(n-1)] + y.mod[2:n]) * delta / 2
+  a.cs <- cumsum(a.raw)
+  if (return.sum){
+    return(list(x = x.mod, y= y.mod,area = a.cs[n-1]))
+  } else{
+    return(list(x = x.mod, y = y.mod, area = a.cs))
+  }
+}
+
+get.mass.cutoff <- function(x,y,p = 0.5,interpolate = T, delta = 0.1){
+  int.res <- trapz(x,y,return.sum = F,interpolate = interpolate, delta = delta)
+  a.raw <- int.res[["area"]]
+  a.fraction <- a.raw / a.raw[length(a.raw)]
+  a.diff <- abs(a.fraction - p)
+  val <- int.res[["x"]][which(a.diff == min(a.diff))]
+  if (length(val) > 1){
+    val <- val[1]
+  }
+  return(val)
+}
