@@ -154,7 +154,7 @@ get.axis.genes <- function(X,
                            n.genes = NULL
                            ){
   
-  #' @export get.axis.genes 
+  #' @export get.axis.genes
   if (bin.data){
     binned.data <- average.profiles(X,
                                 y,
