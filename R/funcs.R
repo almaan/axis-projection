@@ -151,9 +151,9 @@ get.axis.genes <- function(X,
                            y,
                            bin.data = T,
                            n.bins = 100,
-                           n.genes = NULL
+                           n.genes = NULL,
                            lb.val = NULL,
-                           ub.val = NULL,
+                           ub.val = NULL
                            ){
   
   #' @export get.axis.genes
