@@ -58,6 +58,7 @@ get.axis.vector <- function(a.crd,
 }
 
 nice.diff.vector <- function(x,y){
+  #' @export nice.diff.vector
   x <- as.matrix(x)
   y <- as.matrix(y)
   nx <- nrow(x)

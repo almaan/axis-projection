@@ -152,6 +152,8 @@ get.axis.genes <- function(X,
                            bin.data = T,
                            n.bins = 100,
                            n.genes = NULL
+                           lb.val = NULL,
+                           ub.val = NULL,
                            ){
   
   #' @export get.axis.genes
@@ -159,8 +161,8 @@ get.axis.genes <- function(X,
     binned.data <- average.profiles(X,
                                 y,
                                 n.bins = n.bins,
-                                lb.val = 0.15, 
-                                ub.val = 0.85)
+                                lb.val = lb.val, 
+                                ub.val = ub.val)
     X.var <- binned.data$X
     y.var <- binned.data$y
   } else {
