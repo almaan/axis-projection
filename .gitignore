@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-.Rproj.user
-=======
 # History files
 .Rhistory
 .Rapp.history
@@ -40,4 +37,5 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
->>>>>>> 74f22c8ab5d45cabcd6eb8522443b9b72afb27f9
+# old folder
+old/
