@@ -1,0 +1,393 @@
+---
+title: "DEMO : Spinal Cord Axis Projection Example"
+output: 
+  tufte::tufte_html: default
+author: Alma Andersson
+date: 2021-10-01
+---
+
+## Prep
+
+This notebook illustrates how the distribution of certain features of interest
+(e.g., genes or cell types) along a specified axis can be analyzed. To simplify
+things, I've written the code as a small package that you can load functions
+from. These functions are written to be versatile and general, as to allow
+custom analysis of different kinds.
+
+**NOTE** : This is just a demo and not meant to be a comprehensive discussion on
+the actual code.
+
+The first thing you need to do is to specify the paths to your data
+(`DATA_PATH`):
+
+
+```{r}
+DATA_PATH <- "../../data/robjs/210902_SC_DVaxis.rds"
+```
+
+Unsurprisingly, the next thing we do is to load the necessary packages (mainly
+so that we can read your `Seurat` object) and source the custom functions.
+
+```{r}
+library(Seurat)
+library(ggplot2)
+library(gridExtra)
+```
+
+We proceed to install and load the package I've written for you. We fetch this
+package from `github`:
+
+```{r}
+if (!("axis.projection" %in% rownames(installed.packages()))){
+   devtools::install_github("git@github.com:almaan/axis-projection.git") 
+}
+
+library(axis.projection)
+```
+
+## Data loading and processing
+
+We will now load the data that we want to analyze (your `Seurat` object), and
+make some small adjustments to make it easier to analyze it.
+
+```{r}
+se <- readRDS(DATA_PATH)
+head(se@meta.data[c("labels","axis_annot")])
+```
+While it's nice that the column `axis_annot` in the metadata also contains the
+section information, this complicates things a bit when we want to identify the
+DV axis, the main issue being that a spit annotated as `1_D` would be interpret
+as something different than for example `2_D`, when both spots should be
+considered as _dorsal_. Also, there were some inconsistencies in the naming of
+these sections (different arrangement of "_" and numbers).  Hence, we'll adjust
+this before proceeding - the updated annotations will be placed in a new column
+called `DV`, where we only have the "D" and "V" annotation.
+
+```{r}
+# create a DV column
+se@meta.data["DV"] <- gsub("[1-9]|_","",se@meta.data$axis_annot)
+
+```
+
+Since this is only a demo, we'll only use 4 of the sections you've identified in
+the `labels` column, but of course the same workflow can be applied to the complete 
+data set. I've written the code to be memory efficient, so it should not be any
+issues increasing the amount of data.
+
+```{r}
+# list which sections you want to keep
+keep.sections <- paste0("section_",c(12,15,19,23))
+# print info
+print(sprintf("Well keep the sections >> %s",paste(keep.sections,collapse=", ")))
+# select spots belonging to sections
+keep.spots <- which(se@meta.data$labels %in% keep.sections)
+# subset data, make sure to use the SubsetSTData to correctly modify Staffli object
+se <- STutility::SubsetSTData(se,spots = keep.spots)
+# inspect new object
+se
+```
+
+## Analysis : Axis projection
+
+We may now actually analyze the data. In order to do this we must do
+two things:
+
+1. From knowing which spots that are in the _dorsal_ respectively _ventral_
+parts, we need to computationally **identify the DV-axis**. The way I've
+approached this issue to, for every spot marked as _ventral_ compute the vector
+that connects it with it's nearest _dorsal_ spot. Once these vectors are
+computed, they are normalized to unit norm (euclidean) and the mean is computed.
+From this we should end up with a fairly good estimate of the axis vector.
+
+2. Once the DV-axis is identified, we want to project every spot onto the
+new space spanned by the axis vector, and extract the coordinates w.r.t. this 1D
+space. For this I've used the standard projection formula:
+
+$proj_{\bar{v}}\bar{x} = \frac{\bar{x}\cdot\bar{v}}{\bar{v}\cdot\bar{v}}\bar{v}$
+
+Here $\cdot$ represents the dot-product and $\bar{x}$ is the coordinates of a
+spot to be projected on the DV-axis ($\bar{v}$). Normalizing $\bar{v}$ to unit
+norm, simplifies the formula to:
+
+$proj_{\bar{v}}\bar{x} = (\bar{x}\cdot\bar{v})\bar{v}$
+
+from which it's evident that the projection's coordinate w.r.t. the basis $\bar{v}$ is simply:
+$\bar{x}\cdot\bar{v}$
+
+Both of these steps, will be automatically performed by the function
+`axis.projection` that I wrote and included in the package. This function takes
+3 required and 1 optional argument. In context of this function we'll be
+speaking of "A" and "B" annotations/labels, where the idea is that the axis goes
+from "A->B". These arguments are:
+
+- `ab.column` : column in the object's `meta.data` slot that holds the
+   annotations of whether the spots belongs to A or B. _In your case this is_ `DV`
+- `a.label` : label used to indicate that a spot belongs to A. _In your case this is_ `V`
+- `b.label` : same as `a.label` but for B. In your case this is `D`.
+- `split.on` : if an individual axis should be computed for subset of spots,
+   then `split.on` should be set to the column name that assigns the spots to
+   each of these subsets. _In your case_ this should be `labels`, since you need an individual axis for each section.
+-  `include.orthogonal` : By setting this to true, we also get the projections on the axis orthogonal to the ab-axis.
+
+```{r}
+# set argument values
+ab.column <- "DV"
+a.label <- "V"
+b.label <- "D"
+split.on <- "labels"
+# indentify axis and project data on it
+se <- axis.projection(se,
+                      ab.column = ab.column,
+                      a.label = a.label,
+                      b.label = b.label,
+                      split.on = split.on,
+                      include.orthogonal = T
+                      )
+
+```
+
+As another sanity check, we can plot the sections and color the spots according to
+their position along the axis (**note**, so far this has nothing to do with
+expression values). Here, a low value means that the spot is near the ventral
+edge while a high value means the spot is near the dorsal edge.
+
+```{r,fig.width=10}
+
+# create empty list for grobs
+grobs <- list()
+# iterate over each section
+for (s in keep.sections){
+  
+  # select spot for section
+  test.spots <- which(se@meta.data$labels == s)
+  # select coordinates for section
+  crd <- get.coordinates(STutility::SubsetSTData(se,spots = test.spots))
+  # get projected data
+  proj.val <- se@meta.data$DV_projection[test.spots]
+#  proj.val <- se@meta.data$orth_to_DV_projection[test.spots]
+  
+  # create data frame for plotting
+  test.plot.df <- data.frame(x= crd$pixel_x,
+                             y = crd$pixel_y,
+                             projval = proj.val
+                             ) 
+  
+  # create plot and store in list
+  grobs[[s]] <- ggplot(test.plot.df, aes(x=x,
+                                         y = y,
+                                         color = projval,
+                                         fill = projval)) +
+                geom_point(size = 2) +
+                coord_fixed() +
+                scale_y_reverse()
+}  
+
+# visualize subplots in grid
+grid.arrange(grobs = grobs,
+             ncol = 2)
+
+```
+
+That looks good, seems like the linear algebra implementations in the
+`axis.projection` function works as expected. 
+
+This means that we're now ready to actually look at the distribution of a
+feature of interest along this axis.
+
+### Visualization
+
+The functions in the package `axis projection` are written to extract
+information from the _default_ assay in you _Seurat_ object, so make sure to
+that you have the correct value set here. For example, I want the `SCT`
+normalized data, and hence we do:
+
+```{r}
+# set default assay to SCT
+Seurat::DefaultAssay(object = se) <- "SCT"
+```
+
+Next, let us specify the features we want to investigate:
+
+```{r}
+# specify genes to investigate
+features <- c("EBF1", "ZIC2","FGFBP3")
+```
+
+To visualize the collective distribution along the DV-axis across all four
+samples we do:
+
+```{r}
+# visualize features along axis
+g <- plot.axis.projection(se,
+                          features,
+                          ab.column,
+                          a.label,
+                          b.label,
+                          normalize = T
+                          )
+print(g)
+```
+As we can see here, the expression levels of _EBF1_ and _ZIC2_ increase the
+closer to the dorsal edge that we get, while the converse is true for _FGFBP3_.
+
+We could also split the curves based on section, which might be handy when
+looking at how these expression patterns change over time. To do this, all you
+need to do is to _provide the name of the column you want to split the data with respect to_  (for you `labels`).
+
+For example:
+
+```{r}
+# visualize features along axis
+g <- plot.axis.projection(se,
+                          features,
+                          ab.column,
+                          a.label,
+                          b.label,
+                          normalize = T,
+                          split.on = "labels"
+                          )
+print(g)
+
+```
+
+Here features will have the same line color while the attribute you split w.r.t
+have a different fill color. With 3 genes and 4 samples we get 12 curves in
+total, which might be a bit messy. To circumvent this mess you can simply split
+the results into several subplots. Also, the observed values (to which we have
+fitted the smoothed curves), can be excluded from the visualization by setting
+`show.data = FALSE`.
+
+```{r}
+
+# visualize features along axis
+# one subplot for each feature
+grobs <- lapply(features,
+                function(feature){plot.axis.projection(se,
+                          feature,
+                          ab.column,
+                          a.label,
+                          b.label,
+                          show.data =F,
+                          normalize = T,
+                          title = feature,
+                          split.on = "labels"
+                          )})
+
+# visualize in grid
+grid.arrange(grobs = grobs,
+             ncol = 2)
+
+
+```
+You could also use different color palettes for the color and fill, to do this
+just provide these as values to the arguments `color.color` and `fill.color`. If
+you want to change the x-and ylabels, you can use the `xlabel` and `ylabel`
+arguments.
+
+```{r}
+# visualize 
+g <- plot.axis.projection(se,
+                          features[1],
+                          ab.column,
+                          a.label,
+                          b.label,
+                          normalize = T,
+                          split.on = "labels",
+                          color.color = scale_color_hue(),
+                          fill.color = scale_color_hue(),
+                          xlabel = "Axis",
+                          ylabel = "Gene Expression"
+                          )
+
+print(g)
+
+```
+
+
+## Finding spatially informative genes
+
+Next thing for us to do is to try and extract a set of genes that are highly
+informative of the spatial position along the DV-axis and the axis orthogonal to
+this one.
+
+The way we'll do this is by penalized logistic regression (more specifically we
+apply a form of L2 regression), where we try to predict the position along each
+axis from the gene expression. Although logistic regression is often applied to
+Bernoulli distributed variables, it can also be applied to continous variables
+like our axis positions. Logistic regression is also fit for this problem since
+the logit function maps values on the real number line to the interval $(0,1)$,
+which is exactly the values our axis-projections takes.
+
+The generalized linear model (GLM) we are using for the fitting doesn't scale
+that well to large datasets with plenty of features (like ours), so I've
+implemented a form of binning where samples that has approximately the same
+axis-coordinates are joined together and average expression profiles for them
+are calculated. By binning the data, we can make use of all the information but
+still keep the time for the analysis within reasonable time.
+
+All the machinery that is needed to extract a set of spatially informative genes (SIGs)
+is spread across several functions that have been strung together in the
+`get.axis.genes` function. You can change the number of bins as well as the
+number of genes to extract by the arguments `n.bins` and `n.genes` respectively.
+
+
+Here we'll extract $1500$ genes associated with the DV-axis and $1500$ genes
+associated with the axis that is orthogonal to the DV-axis, and then join them
+together.
+
+
+```{r}
+set.seed(1337)
+
+y.var.dv <- se@meta.data$DV_projection
+y.var.dvo <- se@meta.data$orth_to_DV_projection
+
+X.var <- t(as.matrix(se@assays$SCT[,]))
+
+dv.axis.genes <- get.axis.genes(X.var,
+                                y.var.dv,
+                                bin.data = T,
+                                n.bins = 100,
+                                n.genes = 1500)
+dvo.axis.genes <- get.axis.genes(X.var,
+                                 y.var.dvo,
+                                 bin.data = T,
+                                 n.bins = 100,
+                                 n.genes = 1500)
+
+axis.genes <- unique(c(dv.axis.genes,dvo.axis.genes))
+var.genes <- se@assays$SCT@var.features
+print(sprintf("SI and HVG gene info | [HVGs] : %d | [SIGs] : %d | [Intersection] : %d ",length(var.genes),
+              length(axis.genes),length(intersect(var.genes,axis.genes))))
+
+```
+As you can see there's quite a difference between the two gene sets, I would recommend you to try to:
+1. Conduct the analysis with only the SIG set
+2. Conduct the analysis with the union of the HVG and SIG sets
+
+
+Also, as a sanity check we can see if the SIG genes actually seem to exhibit a
+spatial character. Let us plot the top 5 (highest ranked) SIG genes associated
+with the DV-axis.
+
+```{r}
+# visualize features along axis
+g <- plot.axis.projection(se,
+                          dv.axis.genes[1:5],
+                          ab.column,
+                          a.label,
+                          b.label,
+                          normalize = T
+                          )
+print(g)
+```
+Seems like we found some nice patterns there!
+
+
+## Final Remarks
+
+This is just a brief demo on how to use the functions I've written for you, let
+me know if there are any questions. If you're interested in the actual code
+itself, have a look at
+[this](https://github.com/almaan/axis-projection/tree/master/R).
+
