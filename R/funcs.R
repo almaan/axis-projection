@@ -62,7 +62,8 @@ axis.projection <- function(object,
 
   all.ab.projs <- do.call(rbind,all.ab.projs)
   all.ab.projs <- all.ab.projs[idxs,]
-  new.meta.data <- data.frame(new.col = all.ab.projs)
+  new.meta.data <- data.frame(X = all.ab.projs)
+  colnames(new.meta.data) <- new.col
   
   if (include.orthogonal){
     all.ab.orth.projs <- do.call(rbind,all.ab.orth.projs)
